@@ -4,11 +4,12 @@ Vue.js integration for [Convex](https://convex.dev) - the fullstack TypeScript d
 
 ## Features
 
-- 🚀 **SSR Support** - Full server-side rendering compatibility
+- 🚀 **SSR Support** - Full server-side rendering compatibility with payload hydration
 - 🔐 **Authentication** - Built-in auth support for server-side requests
 - ⚡ **Reactive Queries** - Vue-native composables with reactive data binding
 - 🔄 **Real-time Updates** - Automatic UI updates when data changes
 - 📦 **TypeScript** - Full type safety with Convex schema inference
+- 🎯 **No Hydration Flickering** - Seamless data transfer from server to client
 
 ## Quick Start
 
@@ -107,11 +108,13 @@ async function handleGenerateSummary() {
 
 ## Nuxt Integration
 
-For Nuxt applications, create a plugin to integrate Convex with Clerk authentication:
+For Nuxt applications, create a plugin to integrate Convex with automatic payload injection:
+
+### Basic Nuxt Plugin
 
 ```typescript
 // plugins/convex.ts
-import { createConvexVue } from "@adinvadim/convex-vue";
+import { createConvexVue, getSerializedPayload } from "@adinvadim/convex-vue";
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig();
@@ -123,9 +126,46 @@ export default defineNuxtPlugin((nuxtApp) => {
     throw new Error("Missing Convex URL configuration");
   }
 
-  const { userId, isLoaded, getToken } = useAuth();
+  const convex = createConvexVue({
+    convexUrl: config.public.convexUrl,
+  });
 
+  if (import.meta.server) {
+    const payloadData = getSerializedPayload();
+
+    if (payloadData && payloadData !== "{}") {
+      // Use Nuxt's head management to inject the script
+      useHead({
+        script: [
+          {
+            innerHTML: `window.__CONVEX_PAYLOAD__=${JSON.stringify(
+              payloadData
+            )};`,
+            type: "text/javascript",
+            // Ensure it runs before Vue hydration
+            tagPosition: "bodyClose",
+            tagPriority: "high",
+          },
+        ],
+      });
+    }
+  }
+
+  nuxtApp.vueApp.use(convex);
+});
+```
+
+### Nuxt Plugin with Authentication (Clerk)
+
+```typescript
+// plugins/convex.ts
+import { createConvexVue, getSerializedPayload } from "@adinvadim/convex-vue";
+
+export default defineNuxtPlugin((nuxtApp) => {
+  const config = useRuntimeConfig();
+  const { userId, isLoaded, getToken } = useAuth();
   const event = useRequestEvent();
+
   const convex = createConvexVue({
     convexUrl: config.public.convexUrl,
     auth: {
@@ -150,9 +190,40 @@ export default defineNuxtPlugin((nuxtApp) => {
     },
   });
 
+  if (import.meta.server) {
+    const payloadData = getSerializedPayload();
+
+    if (payloadData && payloadData !== "{}") {
+      // Use Nuxt's head management to inject the script
+      useHead({
+        script: [
+          {
+            innerHTML: `window.__CONVEX_PAYLOAD__=${JSON.stringify(
+              payloadData
+            )};`,
+            type: "text/javascript",
+            // Ensure it runs before Vue hydration
+            tagPosition: "bodyClose",
+            tagPriority: "high",
+          },
+        ],
+      });
+    }
+  }
+
   nuxtApp.vueApp.use(convex);
 });
 ```
+
+## Server-Side Rendering (SSR)
+
+Convex Vue includes advanced SSR support with automatic payload hydration to prevent data flickering during client-side hydration.
+
+### How it works
+
+1. **Server-side**: Queries executed with `useConvexQuery` automatically store their results in an SSR payload
+2. **Client-side**: During hydration, the same queries retrieve data from the payload instead of showing loading states
+3. **Seamless transition**: No flickering or empty states during the server-to-client handoff
 
 ## API Reference
 

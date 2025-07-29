@@ -10,3 +10,4 @@ export { default as ConvexQuery } from './components/ConvexQuery.vue';
 export { default as ConvexPaginatedQuery } from './components/ConvexPaginatedQuery.vue';
 export { default as ConvexLink } from './components/ConvexLink.vue';
 export * from './utils';
+export { getSerializedPayload } from './payload';

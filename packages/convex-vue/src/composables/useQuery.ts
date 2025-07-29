@@ -21,6 +21,7 @@ import { Nullable } from '@/types';
 import { useConvex, useConvexHttpClient } from './useConvex';
 import { isServer } from '@/utils';
 import { useConvexAuth } from './useConvexAuth';
+import { payloadManager } from '@/payload';
 
 export type UseConvexQueryOptions = {
   enabled?: MaybeRef<boolean>;
@@ -52,6 +53,12 @@ function _useServerQuery<Query extends QueryReference>(
       return undefined;
     }
 
+    // Create payload key for caching
+    const payloadKey = payloadManager.createPayloadKey(
+      getFunctionName(query),
+      toValue(args)
+    );
+
     try {
       if (isServer) {
         await authState.ensureServerToken();
@@ -60,11 +67,16 @@ function _useServerQuery<Query extends QueryReference>(
       const result = await httpClient.query(query, toValue(args));
       data.value = result;
       error.value = null;
+
+      // Store result in SSR payload for client hydration
+      if (isServer) {
+        payloadManager.setServerData(payloadKey, result);
+      }
+
       return result;
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
       error.value = errorObj;
-      // @ts-expect-error data.value can be undefined when error occurs
       data.value = undefined;
       throw errorObj;
     }
@@ -124,9 +136,17 @@ export const useConvexQuery: <Query extends QueryReference>(
 
   const client = useConvex();
 
-  const data = ref<FunctionReturnType<Query>>(
-    client.client.localQueryResult(getFunctionName(query), toValue(args))
+  // Create payload key for hydration
+  const payloadKey = payloadManager.createPayloadKey(
+    getFunctionName(query),
+    toValue(args)
   );
+
+  // Try to get data from SSR payload first, then fall back to local cache
+  const payloadData = payloadManager.getClientData(payloadKey);
+  const localData = client.client.localQueryResult(getFunctionName(query), toValue(args));
+
+  const data = ref<FunctionReturnType<Query>>(payloadData || localData);
   const error = ref<Nullable<Error>>(null);
 
   let unsub: () => void;
@@ -137,6 +157,11 @@ export const useConvexQuery: <Query extends QueryReference>(
   const suspensePromise = new Promise<FunctionReturnType<Query>>((res, rej) => {
     resolve = res;
     reject = rej;
+
+    // If we have payload data, resolve suspense immediately
+    if (payloadData) {
+      res(payloadData);
+    }
   });
 
   const bind = () => {
@@ -151,8 +176,7 @@ export const useConvexQuery: <Query extends QueryReference>(
           error.value = null;
         },
         err => {
-          // @ts-expect-error data.value can be undefined when error occurs
-          data.value = undefined;
+          data.value = null;
           reject(err);
           error.value = err;
         }
@@ -167,6 +191,7 @@ export const useConvexQuery: <Query extends QueryReference>(
     suspense: () => suspensePromise,
     data,
     error,
-    isLoading: computed(() => data.value === undefined && error.value === null)
+    // If we have payload data, we're not loading
+    isLoading: computed(() => !payloadData && data.value === null && error.value === null)
   };
 };
