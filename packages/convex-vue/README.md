@@ -1,109 +1,217 @@
-# @adinvadin/convex-vue
+# Convex Vue
 
-## Get Started
+Vue.js integration for [Convex](https://convex.dev) - the fullstack TypeScript development platform.
 
-1. Install the package and its peer dependencies
+## Features
 
-   ```bash
-   npm install @adinvadin/convex-vue @vueuse/core convex
-   ```
+- 🚀 **SSR Support** - Full server-side rendering compatibility
+- 🔐 **Authentication** - Built-in auth support for server-side requests
+- ⚡ **Reactive Queries** - Vue-native composables with reactive data binding
+- 🔄 **Real-time Updates** - Automatic UI updates when data changes
+- 📦 **TypeScript** - Full type safety with Convex schema inference
 
-2. Add the ConvexVue plugin to your Vue app
+## Quick Start
 
-   ```js
-   import { createConvexVue } from '@adinvadin/convex-vue';
+```bash
+# ✨ Auto-detect
+npx nypm install @adinvadin/convex-vue
 
-   const convexVue = createConvexVue({
-     convexUrl: import.meta.env.VITE_CONVEX_URL
-   });
+# npm
+npm install @adinvadin/convex-vue
 
-   app.use(convexVue);
-   ```
+# yarn
+yarn add @adinvadin/convex-vue
 
-3. You can now use the convex-vue composables and components in your app 😊
-
-## Composables
-
-### `useConvex`
-
-Returns the [`ConvexClient`](https://docs.convex.dev/api/classes/browser.ConvexClient) instance
-to enable one-off queries and other custom functionality.
-
-```html
-<script setup lang="ts">
-  import { api } from '../convex/_generated/api';
-  import { useConvex } from '@adinvadin/convex-vue';
-
-  const convex = useConvex(); // instance of `ConvexClient`
-  const data = convex.query(api.todos.list, {}); // query once, no subscription
-</script>
+# pnpm
+pnpm install @adinvadin/convex-vue
 ```
 
-### `useConvexQuery`
+```typescript
+// main.ts
+import { createApp } from 'vue';
+import { createConvexVue } from '@adinvadin/convex-vue';
+import App from './App.vue';
 
-Subscribes to a [Convex Query](https://docs.convex.dev/functions/query-functions). It exposes a
-`suspense` function to enable use inside a `<Suspense />` boundary.
+const app = createApp(App);
 
-```html
-<script setup lang="ts">
-  import { api } from '../convex/_generated/api';
-  import { useConvexQuery } from '@adinvadin/convex-vue';
+app.use(
+  createConvexVue({
+    convexUrl: process.env.VITE_CONVEX_URL!
+  })
+);
 
-  const { data, isLoading, error, suspense } = useConvexQuery(
-    api.todos.list, // the query name
-    { completed: true } // query arguments, if no arguments you need to pass an empty object. It can be ref
-  );
-
-  await suspense(); // if used, must be called as a child of <Suspense/> component
-</script>
+app.mount('#app');
 ```
 
-### `useConvexPaginatedQuery`
-
-Subscribes to a [Convex Paginated Query](https://docs.convex.dev/database/pagination). It
-exposes a `suspense` function to enable use inside a `<Suspense />` boundary that will load
-the first page.
-
-```html
+```vue
+<!-- Component.vue -->
 <script setup lang="ts">
-  import { api } from '../convex/_generated/api';
-  import { useConvexPaginatedQuery } from "@adinvadin/convex-vue";
+import { ref } from 'vue';
+import {
+  useConvexQuery,
+  useConvexMutation,
+  useConvexAction
+} from '@adinvadin/convex-vue';
+import { api } from './convex/_generated/api';
 
-  const {
-    data,
-    lastPage,
-    isLoading,
-    isLoadingMore,
-    isDone,
-    loadMore,
-    reset,
-    pages,
-    error,
-    suspense,
-  } = useConvexPaginatedQuery(
-    api.todos.list, // the query name
-    { completed: true } // query arguments, if no arguments you need to pass an empty object. It can be ref,
-    { numItems: 50 } // the number of items per page
-  );
+// Query
+const { data: messages, isLoading } = useConvexQuery(api.messages.getMessages, {});
 
-  await suspense(); // if used, must be called as a child of <Suspense/> component
+// Mutation
+const { mutate: sendMessage, isLoading: isSending } = useConvexMutation(
+  api.messages.send
+);
+
+// Action
+const { mutate: generateSummary, isLoading: isGenerating } = useConvexAction(
+  api.messages.generateSummary
+);
+
+const newMessage = ref('');
+
+async function handleSend() {
+  if (newMessage.value.trim()) {
+    await sendMessage({ text: newMessage.value });
+    newMessage.value = '';
+  }
+}
+
+async function handleGenerateSummary() {
+  await generateSummary({});
+}
 </script>
+
+<template>
+  <div v-if="isLoading">Loading...</div>
+  <div v-else>
+    <div v-for="message in messages" :key="message._id">
+      {{ message.text }}
+    </div>
+
+    <form @submit.prevent="handleSend">
+      <input v-model="newMessage" placeholder="Type a message..." />
+      <button type="submit" :disabled="isSending">
+        {{ isSending ? 'Sending...' : 'Send' }}
+      </button>
+    </form>
+
+    <button @click="handleGenerateSummary" :disabled="isGenerating">
+      {{ isGenerating ? 'Generating...' : 'Generate Summary' }}
+    </button>
+  </div>
+</template>
 ```
 
-### `useConvexMutation`
+## Nuxt Integration
 
-Handles [Convex Mutations](https://docs.convex.dev/functions/mutation-functions). Optimistic
-updates are supported.
+For Nuxt applications, create a plugin to integrate Convex with Clerk authentication:
 
-```js
-import { useConvexMutation } from "@adinvadin/convex-vue";
+```typescript
+// plugins/convex.ts
+import { createConvexVue } from '@adinvadin/convex-vue';
 
-const { isLoading, error, mutate: addTodo } = useConvexMutation(api.todos.add, {
+export default defineNuxtPlugin(nuxtApp => {
+  const config = useRuntimeConfig();
+
+  if (!config.public.convexUrl) {
+    console.error('Convex URL is not configured. Please add it to your nuxt.config.ts');
+    throw new Error('Missing Convex URL configuration');
+  }
+
+  const { userId, isLoaded, getToken } = useAuth();
+
+  const event = useRequestEvent();
+  const convex = createConvexVue({
+    convexUrl: config.public.convexUrl,
+    auth: {
+      isAuthenticated: computed(() => !!userId.value),
+      isLoading: computed(() => !isLoaded.value),
+      getToken: async opts => {
+        try {
+          if (import.meta.server && event) {
+            return await event.context.auth().getToken({
+              template: 'convex'
+            });
+          }
+
+          return await getToken.value({
+            template: 'convex',
+            skipCache: opts.forceRefreshToken
+          });
+        } catch (error) {
+          return null;
+        }
+      }
+    }
+  });
+
+  nuxtApp.vueApp.use(convex);
+});
+```
+
+## API Reference
+
+### Composables
+
+#### `useConvex`
+
+Returns the [`ConvexClient`](https://docs.convex.dev/api/classes/browser.ConvexClient) instance for one-off queries and custom functionality.
+
+```typescript
+import { useConvex } from '@adinvadin/convex-vue';
+
+const convex = useConvex();
+const data = await convex.query(api.todos.list, {});
+```
+
+#### `useConvexQuery`
+
+Subscribes to a [Convex Query](https://docs.convex.dev/functions/query-functions) with reactive data binding and SSR support.
+
+```typescript
+const { data, isLoading, error, suspense } = useConvexQuery(
+  api.todos.list,
+  { completed: true }, // reactive arguments
+  { enabled: true } // options
+);
+
+await suspense(); // for <Suspense /> boundary
+```
+
+#### `useConvexPaginatedQuery`
+
+Subscribes to a [Convex Paginated Query](https://docs.convex.dev/database/pagination).
+
+```typescript
+const {
+  data,
+  lastPage,
+  isLoading,
+  isLoadingMore,
+  isDone,
+  loadMore,
+  reset,
+  pages,
+  error,
+  suspense
+} = useConvexPaginatedQuery(api.todos.list, { completed: true }, { numItems: 50 });
+```
+
+#### `useConvexMutation`
+
+Handles [Convex Mutations](https://docs.convex.dev/functions/mutation-functions) with optimistic updates support.
+
+```typescript
+const {
+  isLoading,
+  error,
+  mutate: addTodo
+} = useConvexMutation(api.todos.add, {
   onSuccess() {
     todo.value = '';
   },
   onError(err) {
-   console.error(err)
+    console.error(err);
   },
   optimisticUpdate(ctx) {
     const current = ctx.getQuery(api.todos.list, {});
@@ -122,13 +230,11 @@ const { isLoading, error, mutate: addTodo } = useConvexMutation(api.todos.add, {
 });
 ```
 
-### `useConvexAction`
+#### `useConvexAction`
 
 Handles [Convex Actions](https://docs.convex.dev/functions/actions).
 
-```js
-import { useConvexAction } from '@adinvadin/convex-vue';
-
+```typescript
 const { isLoading, error, mutate } = useConvexAction(api.some.action, {
   onSuccess(result) {
     console.log(result);
@@ -139,21 +245,17 @@ const { isLoading, error, mutate } = useConvexAction(api.some.action, {
 });
 ```
 
-## Components
+### Components
 
-convex-vue exposes helper components to use queries. This can be useful if you solely
-need its data in your component templates.
+#### `<ConvexQuery />`
 
-### <ConvexQuery />
+Template component for queries with loading, error, and empty states.
 
-```jsx
+```vue
 <ConvexQuery :query="api.todos.list" :args="{}">
   <template #loading>Loading todos...</template>
-
   <template #error="{ error }">{{ error }}</template>
-
   <template #empty>No todos yet.</template>
-
   <template #default="{ data: todos }">
     <ul>
       <li v-for="todo in todos" :key="todo._id">
@@ -164,21 +266,21 @@ need its data in your component templates.
 </ConvexQuery>
 ```
 
-### <ConvexPaginatedQuery />
+#### `<ConvexPaginatedQuery />`
 
-```jsx
- <ConvexPaginatedQuery
+Template component for paginated queries.
+
+```vue
+<ConvexPaginatedQuery
   :query="api.todos.paginatedList"
   :args="{}"
   :options="{ numItems: 5 }"
 >
   <template #loading>Loading todos...</template>
-
   <template #error="{ error, reset }">
     <p>{{ error }}</p>
-   <button @click="reset">Retry</button>
+    <button @click="reset">Retry</button>
   </template>
-
   <template #default="{ data: todos, isDone, loadMore, isLoadingMore, reset }">
     <ul>
       <li v-for="todo in todos" :key="todo._id">
@@ -194,14 +296,55 @@ need its data in your component templates.
 </ConvexPaginatedQuery>
 ```
 
-## Examples
+## Authentication Examples
 
-### Example with auth using [auth0](https://auth0.com/)
+### Clerk
 
-```js
-import { createConvexVue } from "@adinvadin/convex-vue";
+```typescript
+import { createConvexVue } from '@adinvadin/convex-vue';
+import { clerkPlugin } from 'vue-clerk/plugin';
 
-// Example with auth using auth0
+const app = createApp(App).use(clerkPlugin, {
+  publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+});
+
+const authState = {
+  isLoading: ref(true),
+  session: ref(undefined)
+};
+
+app.config.globalProperties.$clerk.addListener(arg => {
+  authState.isLoading.value = false;
+  authState.session.value = arg.session;
+});
+
+const convexVue = createConvexVue({
+  convexUrl: import.meta.env.VITE_CONVEX_URL,
+  auth: {
+    isAuthenticated: computed(() => !!authState.session.value),
+    isLoading: authState.isLoading,
+    getToken: async ({ forceRefreshToken }) => {
+      try {
+        return await authState.session.value?.getToken({
+          template: 'convex',
+          skipCache: forceRefreshToken
+        });
+      } catch (error) {
+        return null;
+      }
+    }
+  }
+});
+
+app.use(convexVue);
+```
+
+### Auth0
+
+```typescript
+import { createConvexVue } from '@adinvadin/convex-vue';
+import { createAuth0 } from '@auth0/auth0-vue';
+
 const auth = createAuth0({
   domain: import.meta.env.VITE_AUTH0_DOMAIN,
   clientId: import.meta.env.VITE_AUTH0_CLIENTID,
@@ -227,129 +370,14 @@ const convexVue = createConvexVue({
       }
     },
     installNavigationGuard: true,
-    needsAuth: to => to.meta.needsAuth
-    redirectTo: () => ({
-      name: 'Login'
-    })
+    needsAuth: to => to.meta.needsAuth,
+    redirectTo: () => ({ name: 'Login' })
   }
 });
 
 app.use(convexVue);
 ```
 
-### Example with auth using [Clerk](https://clerk.com/)
+## Packages
 
-```ts
-import { Ref, computed, createApp, ref } from 'vue';
-import { Resources } from '@clerk/types';
-import { clerkPlugin } from 'vue-clerk/plugin';
-
-const app = createApp(App).use(clerkPlugin, {
-  publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-});
-
-const authState: { isLoading: Ref<boolean>; session: Ref<Resources['session']> } = {
-  isLoading: ref(true),
-  session: ref(undefined)
-};
-app.config.globalProperties.$clerk.addListener(arg => {
-  authState.isLoading.value = false;
-  authState.session.value = arg.session;
-});
-
-const convexVue = createConvexVue({
-  convexUrl: import.meta.env.VITE_CONVEX_URL,
-  auth: {
-    isAuthenticated: computed(() => !!authState.session.value),
-    isLoading: authState.isLoading,
-    getToken: async ({ forceRefreshToken }) => {
-      try {
-        return await authState.session.value?.getToken({
-          template: 'convex',
-          skipCache: forceRefreshToken
-        });
-      } catch (error) {
-        return null;
-      }
-    }
-  }
-});
-
-app.use(convexVue).mount('#app');
-```
-
-## 🧪 Route Loaders (experimental)
-
-Taking inspiration from [Remix's route loaders ](https://remix.run/docs/en/main/route/loader), convex-vue
-introduces a mechanism to specify which data a route needs. The data will then start fetching when
-navigating, before loading the javascript for the page and mouting its component. Under the hood, this
-fires a Convex client subscription so that, hopefully, by the time the page mounts, the convex client
-cache will already have the data, or , at least, the request wil lalready be in flight.
-
-You need to use [vue-router](https://www.npmjs.com/package/vue-router) to use this feature.
-
-1. Define a route loader map like the following:
-
-   ```ts
-   import { api } from '@api';
-   import { defineRouteLoader } from '@adinvadin/convex-vue';
-
-   // defineRouteLoader will provide you with type safety
-   export const loaders = {
-     Home: defineRouteLoader({
-       todos: {
-         query: api.todos.list,
-         args() {
-           return {};
-         }
-       }
-     }),
-
-     TodoDetails: defineRouteLoader({
-       todo: {
-         query: api.todos.byId,
-         args(route) {
-           return {
-             id: route.params.id as Id<'Todos'>
-           };
-         }
-       }
-     })
-   };
-
-   export type Loaders = typeof loaders;
-   ```
-
-2. Pass the route loader map to the convex-vue plugin
-
-   ```ts
-   import { loaders } from './loaders';
-
-   const convexVue = createConvexVue({
-     convexUrl: import.meta.env.VITE_CONVEX_URL,
-     routeLoaderMap: loaders
-   });
-
-   app.use(convexVue);
-   ```
-
-3. That's it! Now, when navigating to a page, convex-vue will look in your loader map
-   and search for a loader corresponding to the `name` property of the route.
-   Alternatively, you can provide a `loader` property in your routes `meta`, and it will
-   be used instead.
-   - You can instead use the `useRouteLoader` to get all the data for one loader in one go,
-     rather than using multiple instances of `useConvexQuery` or `useConvexPaginatedQuery`.
-
-     ```ts
-     const { todos } = useRouteLoader<Loaders['Home']>();
-     ```
-
-⚠️ Due to the way vue-router's route matching works, you will get the data for **ALL** the matched routes when using nested routes. Be wary of naming conflicts !
-
-- A `<ConvexLink />` component is also available. It wraps vue-router's `<RouterLink />` and
-  prefetches its target loader on hover. The component accepts a `prefetchTimeout` prop
-  to set how long the link should be hovered in order to start prefetching
-
-  ```js
-  <ConvexLink :to="{ name: 'Home' }">Todos</ConvexLink>
-  ```
+- `@adinvadin/convex-vue` - Core Vue.js integration with composables and plugin

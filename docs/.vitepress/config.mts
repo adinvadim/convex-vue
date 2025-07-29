@@ -19,7 +19,7 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      { icon: "github", link: "https://github.com/loicpennequin/convex-vue" },
+      { icon: "github", link: "https://github.com/adinvadim/convex-vue" },
     ],
   },
 });

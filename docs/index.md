@@ -11,7 +11,7 @@ hero:
       link: /markdown-examples
     - theme: alt
       text: Exemple
-      link: https://github.com/loicpennequin/convex-vue/tree/master/packages/convex-vue/playground
+      link: https://github.com/adinvadim/convex-vue/tree/master/packages/convex-vue/playground
 
 features:
   - title: Composables
