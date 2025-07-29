@@ -64,6 +64,7 @@ function _useServerQuery<Query extends QueryReference>(
     } catch (err) {
       const errorObj = err instanceof Error ? err : new Error(String(err));
       error.value = errorObj;
+      // @ts-expect-error data.value can be undefined when error occurs
       data.value = undefined;
       throw errorObj;
     }
@@ -150,7 +151,8 @@ export const useConvexQuery: <Query extends QueryReference>(
           error.value = null;
         },
         err => {
-          data.value = null;
+          // @ts-expect-error data.value can be undefined when error occurs
+          data.value = undefined;
           reject(err);
           error.value = err;
         }
