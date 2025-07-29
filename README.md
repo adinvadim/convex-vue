@@ -14,22 +14,22 @@ Vue.js integration for [Convex](https://convex.dev) - the fullstack TypeScript d
 
 ```bash
 # ✨ Auto-detect
-npx nypm install @convex-vue/core
+npx nypm install @adinvadin/convex-vue
 
 # npm
-npm install @convex-vue/core
+npm install @adinvadin/convex-vue
 
 # yarn
-yarn add @convex-vue/core
+yarn add @adinvadin/convex-vue
 
 # pnpm
-pnpm install @convex-vue/core
+pnpm install @adinvadin/convex-vue
 ```
 
 ```typescript
 // main.ts
 import { createApp } from "vue";
-import { createConvexVue } from "@convex-vue/core";
+import { createConvexVue } from "@adinvadin/convex-vue";
 import App from "./App.vue";
 
 const app = createApp(App);
@@ -51,7 +51,7 @@ import {
   useConvexQuery,
   useConvexMutation,
   useConvexAction,
-} from "@convex-vue/core";
+} from "@adinvadin/convex-vue";
 import { api } from "./convex/_generated/api";
 
 // Query
@@ -111,7 +111,7 @@ For Nuxt applications, create a plugin to integrate Convex with Clerk authentica
 
 ```typescript
 // plugins/convex.ts
-import { createConvexVue } from "@convex-vue/core";
+import { createConvexVue } from "@adinvadin/convex-vue";
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig();
@@ -163,7 +163,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 Returns the [`ConvexClient`](https://docs.convex.dev/api/classes/browser.ConvexClient) instance for one-off queries and custom functionality.
 
 ```typescript
-import { useConvex } from "@convex-vue/core";
+import { useConvex } from "@adinvadin/convex-vue";
 
 const convex = useConvex();
 const data = await convex.query(api.todos.list, {});
@@ -211,9 +211,13 @@ const {
 Handles [Convex Mutations](https://docs.convex.dev/functions/mutation-functions) with optimistic updates support.
 
 ```typescript
-const { isLoading, error, mutate: addTodo } = useConvexMutation(api.todos.add, {
+const {
+  isLoading,
+  error,
+  mutate: addTodo,
+} = useConvexMutation(api.todos.add, {
   onSuccess() {
-    todo.value = '';
+    todo.value = "";
   },
   onError(err) {
     console.error(err);
@@ -221,17 +225,17 @@ const { isLoading, error, mutate: addTodo } = useConvexMutation(api.todos.add, {
   optimisticUpdate(ctx) {
     const current = ctx.getQuery(api.todos.list, {});
     if (!current) return;
-    
+
     ctx.setQuery(api.todos.list, {}, [
       {
         _creationTime: Date.now(),
-        _id: 'optimistic_id' as Id<'todos'>,
+        _id: "optimistic_id" as Id<"todos">,
         completed: false,
-        text: todo.text
+        text: todo.text,
       },
-      ...current
+      ...current,
     ]);
-  }
+  },
 });
 ```
 
@@ -246,7 +250,7 @@ const { isLoading, error, mutate } = useConvexAction(api.some.action, {
   },
   onError(err) {
     console.error(err);
-  }
+  },
 });
 ```
 
@@ -306,19 +310,19 @@ Template component for paginated queries.
 ### Clerk
 
 ```typescript
-import { createConvexVue } from "@convex-vue/core";
-import { clerkPlugin } from 'vue-clerk/plugin';
+import { createConvexVue } from "@adinvadin/convex-vue";
+import { clerkPlugin } from "vue-clerk/plugin";
 
 const app = createApp(App).use(clerkPlugin, {
-  publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+  publishableKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
 });
 
 const authState = {
   isLoading: ref(true),
-  session: ref(undefined)
+  session: ref(undefined),
 };
 
-app.config.globalProperties.$clerk.addListener(arg => {
+app.config.globalProperties.$clerk.addListener((arg) => {
   authState.isLoading.value = false;
   authState.session.value = arg.session;
 });
@@ -331,14 +335,14 @@ const convexVue = createConvexVue({
     getToken: async ({ forceRefreshToken }) => {
       try {
         return await authState.session.value?.getToken({
-          template: 'convex',
-          skipCache: forceRefreshToken
+          template: "convex",
+          skipCache: forceRefreshToken,
         });
       } catch (error) {
         return null;
       }
     },
-  }
+  },
 });
 
 app.use(convexVue);
@@ -347,15 +351,15 @@ app.use(convexVue);
 ### Auth0
 
 ```typescript
-import { createConvexVue } from "@convex-vue/core";
-import { createAuth0 } from '@auth0/auth0-vue';
+import { createConvexVue } from "@adinvadin/convex-vue";
+import { createAuth0 } from "@auth0/auth0-vue";
 
 const auth = createAuth0({
   domain: import.meta.env.VITE_AUTH0_DOMAIN,
   clientId: import.meta.env.VITE_AUTH0_CLIENTID,
   authorizationParams: {
-    redirect_uri: window.location.origin
-  }
+    redirect_uri: window.location.origin,
+  },
 });
 
 const convexVue = createConvexVue({
@@ -367,7 +371,7 @@ const convexVue = createConvexVue({
       try {
         const response = await auth.getAccessTokenSilently({
           detailedResponse: true,
-          cacheMode: forceRefreshToken ? 'off' : 'on'
+          cacheMode: forceRefreshToken ? "off" : "on",
         });
         return response.id_token;
       } catch (error) {
@@ -375,9 +379,9 @@ const convexVue = createConvexVue({
       }
     },
     installNavigationGuard: true,
-    needsAuth: to => to.meta.needsAuth,
-    redirectTo: () => ({ name: 'Login' })
-  }
+    needsAuth: (to) => to.meta.needsAuth,
+    redirectTo: () => ({ name: "Login" }),
+  },
 });
 
 app.use(convexVue);
@@ -385,4 +389,4 @@ app.use(convexVue);
 
 ## Packages
 
-- `@convex-vue/core` - Core Vue.js integration with composables and plugin
+- `@adinvadin/convex-vue` - Core Vue.js integration with composables and plugin

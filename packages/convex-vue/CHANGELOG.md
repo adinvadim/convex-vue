@@ -1,4 +1,4 @@
-# @convex-vue/core
+# @adinvadin/convex-vue
 
 ## 0.0.4
 

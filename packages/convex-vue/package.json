@@ -1,6 +1,6 @@
 {
-  "name": "@convex-vue/core",
-  "version": "0.0.4",
+  "name": "@adinvadin/convex-vue",
+  "version": "1.0.0",
   "description": "Vue integration for Convex",
   "keywords": [
     "convex",

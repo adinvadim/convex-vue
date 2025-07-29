@@ -1,24 +1,24 @@
-# @convex-vue/core
+# @adinvadin/convex-vue
 
 ## Get Started
 
 1. Install the package and its peer dependencies
 
-    ```bash
-    npm install @convex-vue/core @vueuse/core convex
-    ```
+   ```bash
+   npm install @adinvadin/convex-vue @vueuse/core convex
+   ```
 
 2. Add the ConvexVue plugin to your Vue app
 
-    ```js
-    import { createConvexVue } from "@convex-vue/core";
+   ```js
+   import { createConvexVue } from '@adinvadin/convex-vue';
 
-    const convexVue = createConvexVue({
-      convexUrl: import.meta.env.VITE_CONVEX_URL
-    });
+   const convexVue = createConvexVue({
+     convexUrl: import.meta.env.VITE_CONVEX_URL
+   });
 
-    app.use(convexVue);
-    ```
+   app.use(convexVue);
+   ```
 
 3. You can now use the convex-vue composables and components in your app 😊
 
@@ -32,7 +32,7 @@ to enable one-off queries and other custom functionality.
 ```html
 <script setup lang="ts">
   import { api } from '../convex/_generated/api';
-  import { useConvex } from "@convex-vue/core";
+  import { useConvex } from '@adinvadin/convex-vue';
 
   const convex = useConvex(); // instance of `ConvexClient`
   const data = convex.query(api.todos.list, {}); // query once, no subscription
@@ -47,7 +47,7 @@ Subscribes to a [Convex Query](https://docs.convex.dev/functions/query-functions
 ```html
 <script setup lang="ts">
   import { api } from '../convex/_generated/api';
-  import { useConvexQuery } from "@convex-vue/core";
+  import { useConvexQuery } from '@adinvadin/convex-vue';
 
   const { data, isLoading, error, suspense } = useConvexQuery(
     api.todos.list, // the query name
@@ -67,7 +67,7 @@ the first page.
 ```html
 <script setup lang="ts">
   import { api } from '../convex/_generated/api';
-  import { useConvexPaginatedQuery } from "@convex-vue/core";
+  import { useConvexPaginatedQuery } from "@adinvadin/convex-vue";
 
   const {
     data,
@@ -96,7 +96,7 @@ Handles [Convex Mutations](https://docs.convex.dev/functions/mutation-functions)
 updates are supported.
 
 ```js
-import { useConvexMutation } from "@convex-vue/core";
+import { useConvexMutation } from "@adinvadin/convex-vue";
 
 const { isLoading, error, mutate: addTodo } = useConvexMutation(api.todos.add, {
   onSuccess() {
@@ -127,7 +127,7 @@ const { isLoading, error, mutate: addTodo } = useConvexMutation(api.todos.add, {
 Handles [Convex Actions](https://docs.convex.dev/functions/actions).
 
 ```js
-import { useConvexAction } from "@convex-vue/core";
+import { useConvexAction } from '@adinvadin/convex-vue';
 
 const { isLoading, error, mutate } = useConvexAction(api.some.action, {
   onSuccess(result) {
@@ -199,7 +199,7 @@ need its data in your component templates.
 ### Example with auth using [auth0](https://auth0.com/)
 
 ```js
-import { createConvexVue } from "@convex-vue/core";
+import { createConvexVue } from "@adinvadin/convex-vue";
 
 // Example with auth using auth0
 const auth = createAuth0({
@@ -271,7 +271,7 @@ const convexVue = createConvexVue({
       } catch (error) {
         return null;
       }
-    },
+    }
   }
 });
 
@@ -292,20 +292,20 @@ You need to use [vue-router](https://www.npmjs.com/package/vue-router) to use th
 
    ```ts
    import { api } from '@api';
-   import { defineRouteLoader } from '@convex-vue/core';
+   import { defineRouteLoader } from '@adinvadin/convex-vue';
 
    // defineRouteLoader will provide you with type safety
    export const loaders = {
      Home: defineRouteLoader({
        todos: {
-        query: api.todos.list,
+         query: api.todos.list,
          args() {
            return {};
          }
        }
      }),
 
-    TodoDetails: defineRouteLoader({
+     TodoDetails: defineRouteLoader({
        todo: {
          query: api.todos.byId,
          args(route) {
@@ -337,7 +337,6 @@ You need to use [vue-router](https://www.npmjs.com/package/vue-router) to use th
    and search for a loader corresponding to the `name` property of the route.
    Alternatively, you can provide a `loader` property in your routes `meta`, and it will
    be used instead.
-
    - You can instead use the `useRouteLoader` to get all the data for one loader in one go,
      rather than using multiple instances of `useConvexQuery` or `useConvexPaginatedQuery`.
 
@@ -351,7 +350,6 @@ You need to use [vue-router](https://www.npmjs.com/package/vue-router) to use th
   prefetches its target loader on hover. The component accepts a `prefetchTimeout` prop
   to set how long the link should be hovered in order to start prefetching
 
-   ```js
-   <ConvexLink :to="{ name: 'Home' }">Todos</ConvexLink>
-   ```
-
+  ```js
+  <ConvexLink :to="{ name: 'Home' }">Todos</ConvexLink>
+  ```
