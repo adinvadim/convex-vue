@@ -1,4 +1,4 @@
-import { ConvexClient, OptimisticUpdate } from 'convex/browser';
+import { ConvexClient, MutationOptions } from 'convex/browser';
 import {
   FunctionArgs,
   FunctionReference,
@@ -8,17 +8,14 @@ import {
 
 export class ConvexVueClient extends ConvexClient {
   async mutation<
-    Mutation extends FunctionReference<'mutation'>,
-    Args extends FunctionArgs<Mutation>
+    Mutation extends FunctionReference<'mutation'>
   >(
     mutation: Mutation,
-    args: Args,
-    optimisticUpdate?: OptimisticUpdate<Args>
+    args: FunctionArgs<Mutation>,
+    options?: MutationOptions
   ): Promise<Awaited<FunctionReturnType<Mutation>>> {
     if (this.disabled) throw new Error('ConvexClient is disabled');
 
-    return await this.client.mutation(getFunctionName(mutation), args, {
-      optimisticUpdate
-    });
+    return await this.client.mutation(getFunctionName(mutation), args, options);
   }
 }
