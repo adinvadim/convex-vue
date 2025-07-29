@@ -1,4 +1,4 @@
-# @adinvadin/convex-vue
+# @adinvadim/convex-vue
 
 ## 0.0.4
 

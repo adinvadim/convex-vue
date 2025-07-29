@@ -1,5 +1,5 @@
 {
-  "name": "@adinvadin/convex-vue",
+  "name": "@adinvadim/convex-vue",
   "version": "1.0.0",
   "description": "Vue integration for Convex",
   "keywords": [
@@ -11,7 +11,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adinvadim/convex-vue.git",
+    "url": "git+https://github.com/adinvadim/convex-vue.git",
     "directory": "packages/convex-vue"
   },
   "files": [
@@ -50,5 +50,9 @@
     "vite": "^5.0.8",
     "vite-plugin-dts": "^3.7.2",
     "vue-tsc": "^1.8.25"
+  },
+  "author": "adinvadim",
+  "bugs": {
+    "url": "https://github.com/adinvadim/convex-vue/issues"
   }
 }

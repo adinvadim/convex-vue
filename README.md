@@ -14,22 +14,22 @@ Vue.js integration for [Convex](https://convex.dev) - the fullstack TypeScript d
 
 ```bash
 # ✨ Auto-detect
-npx nypm install @adinvadin/convex-vue
+npx nypm install @adinvadim/convex-vue
 
 # npm
-npm install @adinvadin/convex-vue
+npm install @adinvadim/convex-vue
 
 # yarn
-yarn add @adinvadin/convex-vue
+yarn add @adinvadim/convex-vue
 
 # pnpm
-pnpm install @adinvadin/convex-vue
+pnpm install @adinvadim/convex-vue
 ```
 
 ```typescript
 // main.ts
 import { createApp } from "vue";
-import { createConvexVue } from "@adinvadin/convex-vue";
+import { createConvexVue } from "@adinvadim/convex-vue";
 import App from "./App.vue";
 
 const app = createApp(App);
@@ -51,7 +51,7 @@ import {
   useConvexQuery,
   useConvexMutation,
   useConvexAction,
-} from "@adinvadin/convex-vue";
+} from "@adinvadim/convex-vue";
 import { api } from "./convex/_generated/api";
 
 // Query
@@ -111,7 +111,7 @@ For Nuxt applications, create a plugin to integrate Convex with Clerk authentica
 
 ```typescript
 // plugins/convex.ts
-import { createConvexVue } from "@adinvadin/convex-vue";
+import { createConvexVue } from "@adinvadim/convex-vue";
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig();
@@ -163,7 +163,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 Returns the [`ConvexClient`](https://docs.convex.dev/api/classes/browser.ConvexClient) instance for one-off queries and custom functionality.
 
 ```typescript
-import { useConvex } from "@adinvadin/convex-vue";
+import { useConvex } from "@adinvadim/convex-vue";
 
 const convex = useConvex();
 const data = await convex.query(api.todos.list, {});
@@ -310,7 +310,7 @@ Template component for paginated queries.
 ### Clerk
 
 ```typescript
-import { createConvexVue } from "@adinvadin/convex-vue";
+import { createConvexVue } from "@adinvadim/convex-vue";
 import { clerkPlugin } from "vue-clerk/plugin";
 
 const app = createApp(App).use(clerkPlugin, {
@@ -351,7 +351,7 @@ app.use(convexVue);
 ### Auth0
 
 ```typescript
-import { createConvexVue } from "@adinvadin/convex-vue";
+import { createConvexVue } from "@adinvadim/convex-vue";
 import { createAuth0 } from "@auth0/auth0-vue";
 
 const auth = createAuth0({
@@ -389,4 +389,4 @@ app.use(convexVue);
 
 ## Packages
 
-- `@adinvadin/convex-vue` - Core Vue.js integration with composables and plugin
+- `@adinvadim/convex-vue` - Core Vue.js integration with composables and plugin
