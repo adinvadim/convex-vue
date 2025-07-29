@@ -3,11 +3,10 @@ import {
   PaginationOptions,
   PaginationResult,
   FunctionArgs,
-  FunctionReturnType,
   getFunctionName
 } from 'convex/server';
 import { MaybeRefOrGetter, ref, computed, toValue, watch, nextTick } from 'vue';
-import { Prettify, DistributiveOmit, Nullable } from '@/types';
+import { Prettify, DistributiveOmit } from '@/types';
 import { useConvexQuery } from './useQuery';
 import { useConvex } from './useConvex';
 import { isServer } from '@/utils';

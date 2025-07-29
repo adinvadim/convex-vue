@@ -1,6 +1,6 @@
-import { inject, type Ref, watch } from 'vue';
+import { inject, watch } from 'vue';
 import { CONVEX_AUTH_INJECTION_KEY } from '@/plugin';
-import { Nullable } from '@/types';
+
 import { isServer } from '@/utils';
 
 export function useConvexAuth() {

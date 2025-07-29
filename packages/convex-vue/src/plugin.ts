@@ -109,7 +109,7 @@ export const createConvexVue = ({
       app.provide(CONVEX_AUTH_INJECTION_KEY, authState);
       app.config.globalProperties.$convexAuth = authState;
 
-      const syncConvexAuthWithAuthProvider = async (newValue: boolean) => {
+      const syncConvexAuthWithAuthProvider = async () => {
         if (auth.isLoading.value) {
           if (!authState.isLoading.value) {
             authState.isLoading.value = true;
@@ -154,7 +154,7 @@ export const createConvexVue = ({
 
       watch(auth.isLoading, loading => {
         if (!loading && auth.isAuthenticated.value) {
-          syncConvexAuthWithAuthProvider(true);
+          syncConvexAuthWithAuthProvider();
         }
       });
 
