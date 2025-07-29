@@ -1,5 +1,5 @@
 import { InjectionKey, Plugin, Ref, watch } from 'vue';
-import { type ConvexClientOptions } from 'convex/browser';
+import { ConvexHttpClient, type ConvexClientOptions } from 'convex/browser';
 import { RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
 import { Nullable } from './types';
 import { until } from '@vueuse/core';
@@ -37,6 +37,12 @@ export type ConvexVuePluginOptions = {
 export const CONVEX_INJECTION_KEY = Symbol(
   'convex-client'
 ) as InjectionKey<ConvexVueClient>;
+export const CONVEX_HTTP_CLIENT_INJECTION_KEY = Symbol(
+  'convex-http-client'
+) as InjectionKey<ConvexHttpClient>;
+export const CONVEX_SERVER_INJECTION_KEY = Symbol(
+  'convex-server'
+) as InjectionKey<ConvexVueClient>;
 export const CONVEX_LOADERS_INJECTION_KEY = Symbol(
   'convex-loaders'
 ) as InjectionKey<RouteLoaderMap>;
@@ -44,6 +50,7 @@ export const CONVEX_AUTH_INJECTION_KEY = Symbol('convex-auth') as InjectionKey<{
   isAuthenticated: Ref<boolean>;
   isLoading: Ref<boolean>;
   getToken(opts: { forceRefreshToken: boolean }): Promise<Nullable<string>>;
+  setServerToken?(token: string): void;
 }>;
 
 export const createConvexVue = ({
@@ -56,7 +63,9 @@ export const createConvexVue = ({
     install(app) {
       const client = new ConvexVueClient(convexUrl, clientOptions);
       app.provide(CONVEX_INJECTION_KEY, client);
-      app.config.globalProperties.$convex = client;
+      const httpClient = new ConvexHttpClient(convexUrl);
+      app.provide(CONVEX_HTTP_CLIENT_INJECTION_KEY, httpClient);
+      app.config.globalProperties.$convex = httpClient;
 
       if (routeLoaderMap) {
         app.provide(CONVEX_LOADERS_INJECTION_KEY, routeLoaderMap);
@@ -89,28 +98,50 @@ export const createConvexVue = ({
         isAuthenticated: auth.isAuthenticated,
         getToken(opts: { forceRefreshToken: boolean }) {
           return auth.getToken(opts);
+        },
+        setServerToken(token: string) {
+          if (typeof window === 'undefined') {
+            httpClient.setAuth(token);
+          }
         }
       };
 
       app.provide(CONVEX_AUTH_INJECTION_KEY, authState);
       app.config.globalProperties.$convexAuth = authState;
 
-      const syncConvexAuthWithAuthProvider = async () => {
+      const syncConvexAuthWithAuthProvider = async (newValue: boolean) => {
         if (auth.isLoading.value) {
           if (!authState.isLoading.value) {
             authState.isLoading.value = true;
           }
-
           return;
         }
 
         if (auth.isAuthenticated.value) {
-          client.setAuth(auth.getToken, isAuth => {
-            authState.isAuthenticated.value = isAuth;
-            authState.isLoading.value = false;
-          });
+          if (typeof window === 'undefined') {
+            try {
+              const token = await auth.getToken({ forceRefreshToken: false });
+
+              if (token) {
+                httpClient.setAuth(token);
+              } else {
+                httpClient.clearAuth();
+              }
+            } catch (error) {
+              httpClient.clearAuth();
+            }
+          } else {
+            client.setAuth(auth.getToken, isAuth => {
+              authState.isAuthenticated.value = isAuth;
+              authState.isLoading.value = false;
+            });
+          }
         } else {
           client.client.clearAuth();
+
+          if (typeof window === 'undefined') {
+            httpClient.clearAuth();
+          }
 
           authState.isAuthenticated.value = false;
           authState.isLoading.value = false;
@@ -119,6 +150,12 @@ export const createConvexVue = ({
 
       watch(auth.isAuthenticated, syncConvexAuthWithAuthProvider, {
         immediate: true
+      });
+
+      watch(auth.isLoading, loading => {
+        if (!loading && auth.isAuthenticated.value) {
+          syncConvexAuthWithAuthProvider(true);
+        }
       });
 
       if (auth.installNavigationGuard) {

@@ -18,3 +18,7 @@ export const isDefined = <T>(arg: Nullable<T>): arg is Defined<T> =>
 
 export const isObject = (x: unknown): x is object =>
   typeof x === 'object' && x !== null && !Array.isArray(x);
+
+export const isServer = typeof window === 'undefined';
+
+export const isClient = typeof window !== 'undefined';
