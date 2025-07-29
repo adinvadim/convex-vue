@@ -34,9 +34,10 @@ const { data, isLoading, error, suspense } = useConvexQuery(
   props.options
 );
 
-const isEmpty = computed(
-  () => data.value === null || (Array.isArray(data.value) && !data.value.length)
-);
+const isEmpty = computed(() => {
+  const value = data.value;
+  return value === null || (Array.isArray(value) && !value.length);
+});
 
 if (props.suspense) await suspense();
 </script>
