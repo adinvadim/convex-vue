@@ -1,5 +1,5 @@
-import { stringify, parse } from 'devalue';
 import { isServer } from './utils';
+import { isRef } from 'vue';
 
 export interface ConvexSSRPayload {
   [key: string]: any;
@@ -9,12 +9,18 @@ declare global {
   interface Window {
     __CONVEX_PAYLOAD__?: string;
   }
-
-  var __CONVEX_SSR_PAYLOAD__: ConvexSSRPayload | undefined;
 }
 
 class PayloadManager {
-  private serverPayload: ConvexSSRPayload = {};
+  private ssrConfig: any = null;
+
+  /**
+   * Initialize the payload manager with SSR configuration
+   * Called from composables that have access to inject()
+   */
+  init(ssrConfig: any) {
+    this.ssrConfig = ssrConfig;
+  }
 
   /**
    * Creates a unique key for storing query data in the payload
@@ -24,14 +30,29 @@ class PayloadManager {
   }
 
   /**
+   * Gets the current request-scoped payload storage using SSR config
+   * Delegates to user-provided implementation for request isolation
+   */
+  private getCurrentPayload() {
+    if (this.ssrConfig) {
+      const storage = this.ssrConfig.payloadStorage();
+      return isRef(storage) ? storage.value : storage;
+    }
+
+    console.warn(
+      '[ConvexVue] No SSR config provided, fallback empty object as payload storage'
+    );
+    return {};
+  }
+
+  /**
    * Stores data in the server-side payload during SSR
+   * Uses user-provided storage implementation for request isolation
    */
   setServerData(key: string, data: any): void {
     if (isServer) {
-      this.serverPayload[key] = data;
-      // Also store in globalThis for serialization
-      globalThis.__CONVEX_SSR_PAYLOAD__ = globalThis.__CONVEX_SSR_PAYLOAD__ || {};
-      globalThis.__CONVEX_SSR_PAYLOAD__[key] = data;
+      const payload = this.getCurrentPayload();
+      payload[key] = data;
     }
   }
 
@@ -39,51 +60,10 @@ class PayloadManager {
    * Retrieves data from the client-side payload during hydration
    */
   getClientData(key: string): any {
-    if (!isServer && typeof window !== 'undefined') {
-      const payload = window.__CONVEX_PAYLOAD__;
-      if (payload) {
-        return parse(payload)?.[key];
-      }
-    }
-    return undefined;
-  }
-
-  /**
-   * Serializes the server payload to be injected into HTML
-   */
-  serializePayload(): string {
-    if (isServer) {
-      const payload = globalThis.__CONVEX_SSR_PAYLOAD__ || {};
-      try {
-        return stringify(payload);
-      } catch (error) {
-        console.warn('Failed to serialize Convex SSR payload:', error);
-        return '{}';
-      }
-    }
-    return '{}';
-  }
-
-  /**
-   * Resets the payload (useful for testing or manual cleanup)
-   */
-  reset(): void {
-    this.serverPayload = {};
-    if (isServer) {
-      globalThis.__CONVEX_SSR_PAYLOAD__ = {};
-    } else if (typeof window !== 'undefined') {
-      window.__CONVEX_PAYLOAD__ = '';
-    }
+    const payload = this.getCurrentPayload();
+    return payload[key];
   }
 }
 
 // Singleton instance
 export const payloadManager = new PayloadManager();
-
-/**
- * Utility function to serialize just the payload data (without script wrapper)
- * Useful if you want to handle script injection yourself
- */
-export function getSerializedPayload(): string {
-  return payloadManager.serializePayload();
-}

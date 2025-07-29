@@ -15,13 +15,15 @@ import {
   type Ref,
   type UnwrapRef,
   type ComputedRef,
-  onServerPrefetch
+  onServerPrefetch,
+  inject
 } from 'vue';
 import { Nullable } from '@/types';
 import { useConvex, useConvexHttpClient } from './useConvex';
 import { isServer } from '@/utils';
 import { useConvexAuth } from './useConvexAuth';
 import { payloadManager } from '@/payload';
+import { CONVEX_SSR_INJECTION_KEY } from '@/plugin';
 
 export type UseConvexQueryOptions = {
   enabled?: MaybeRef<boolean>;
@@ -45,8 +47,13 @@ function _useServerQuery<Query extends QueryReference>(
   const isLoading = computed(() => data.value === undefined && error.value === null);
 
   const httpClient = useConvexHttpClient();
-
   const authState = useConvexAuth();
+
+  // Initialize payload manager with SSR config
+  const ssrConfig = inject(CONVEX_SSR_INJECTION_KEY, null);
+  if (ssrConfig) {
+    payloadManager.init(ssrConfig);
+  }
 
   const executeQuery = async () => {
     if (!isEnabled.value) {
@@ -136,6 +143,12 @@ export const useConvexQuery: <Query extends QueryReference>(
 
   const client = useConvex();
 
+  // Initialize payload manager with SSR config (for client-side too)
+  const ssrConfig = inject(CONVEX_SSR_INJECTION_KEY, null);
+  if (ssrConfig) {
+    payloadManager.init(ssrConfig);
+  }
+
   // Create payload key for hydration
   const payloadKey = payloadManager.createPayloadKey(
     getFunctionName(query),
@@ -144,6 +157,7 @@ export const useConvexQuery: <Query extends QueryReference>(
 
   // Try to get data from SSR payload first, then fall back to local cache
   const payloadData = payloadManager.getClientData(payloadKey);
+
   const localData = client.client.localQueryResult(getFunctionName(query), toValue(args));
 
   const data = ref<FunctionReturnType<Query>>(payloadData || localData);

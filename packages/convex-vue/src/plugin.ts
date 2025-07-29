@@ -1,4 +1,4 @@
-import { InjectionKey, Plugin, Ref, watch } from 'vue';
+import { InjectionKey, MaybeRef, Plugin, Ref, watch } from 'vue';
 import { ConvexHttpClient, type ConvexClientOptions } from 'convex/browser';
 import { RouteLocationNormalized, RouteLocationRaw } from 'vue-router';
 import { Nullable } from './types';
@@ -32,6 +32,13 @@ export type ConvexVuePluginOptions = {
     isLoading: Ref<boolean>;
   } & NavigationGuardOptions;
   routeLoaderMap?: RouteLoaderMap;
+  ssr?: {
+    /**
+     * Custom payload storage implementation for SSR isolation
+     * Should return a request-scoped storage object
+     */
+    payloadStorage(): MaybeRef<Record<string, any>>;
+  };
 };
 
 export const CONVEX_INJECTION_KEY = Symbol(
@@ -52,12 +59,16 @@ export const CONVEX_AUTH_INJECTION_KEY = Symbol('convex-auth') as InjectionKey<{
   getToken(opts: { forceRefreshToken: boolean }): Promise<Nullable<string>>;
   setServerToken?(token: string): void;
 }>;
+export const CONVEX_SSR_INJECTION_KEY = Symbol('convex-ssr') as InjectionKey<{
+  payloadStorage(): MaybeRef<Record<string, any>>;
+}>;
 
 export const createConvexVue = ({
   clientOptions,
   convexUrl,
   auth,
-  routeLoaderMap
+  routeLoaderMap,
+  ssr
 }: ConvexVuePluginOptions): Plugin => {
   return {
     install(app) {
@@ -66,6 +77,16 @@ export const createConvexVue = ({
       const httpClient = new ConvexHttpClient(convexUrl);
       app.provide(CONVEX_HTTP_CLIENT_INJECTION_KEY, httpClient);
       app.config.globalProperties.$convex = httpClient;
+
+      // Provide SSR payload management
+
+      if (ssr) {
+        const ssrConfig = {
+          payloadStorage: ssr.payloadStorage
+        };
+
+        app.provide(CONVEX_SSR_INJECTION_KEY, ssrConfig);
+      }
 
       if (routeLoaderMap) {
         app.provide(CONVEX_LOADERS_INJECTION_KEY, routeLoaderMap);

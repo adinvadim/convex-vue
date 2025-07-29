@@ -114,11 +114,12 @@ For Nuxt applications, create a plugin to integrate Convex with automatic payloa
 
 ```typescript
 // plugins/convex.ts
-import { createConvexVue, getSerializedPayload } from "@adinvadim/convex-vue";
+import { createConvexVue } from "@adinvadim/convex-vue";
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig();
 
+  const ssrConvexState = useState("convex", () => ({}));
   if (!config.public.convexUrl) {
     console.error(
       "Convex URL is not configured. Please add it to your nuxt.config.ts"
@@ -126,30 +127,15 @@ export default defineNuxtPlugin((nuxtApp) => {
     throw new Error("Missing Convex URL configuration");
   }
 
+  const ssrConvexState = useState("convex", () => ({}));
   const convex = createConvexVue({
     convexUrl: config.public.convexUrl,
+    ssr: {
+      payloadStorage() {
+        return ssrConvexState;
+      },
+    },
   });
-
-  if (import.meta.server) {
-    const payloadData = getSerializedPayload();
-
-    if (payloadData && payloadData !== "{}") {
-      // Use Nuxt's head management to inject the script
-      useHead({
-        script: [
-          {
-            innerHTML: `window.__CONVEX_PAYLOAD__=${JSON.stringify(
-              payloadData
-            )};`,
-            type: "text/javascript",
-            // Ensure it runs before Vue hydration
-            tagPosition: "bodyClose",
-            tagPriority: "high",
-          },
-        ],
-      });
-    }
-  }
 
   nuxtApp.vueApp.use(convex);
 });
@@ -159,13 +145,14 @@ export default defineNuxtPlugin((nuxtApp) => {
 
 ```typescript
 // plugins/convex.ts
-import { createConvexVue, getSerializedPayload } from "@adinvadim/convex-vue";
+import { createConvexVue } from "@adinvadim/convex-vue";
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig();
   const { userId, isLoaded, getToken } = useAuth();
   const event = useRequestEvent();
 
+  const ssrConvexState = useState("convex", () => ({}));
   const convex = createConvexVue({
     convexUrl: config.public.convexUrl,
     auth: {
@@ -188,28 +175,13 @@ export default defineNuxtPlugin((nuxtApp) => {
         }
       },
     },
+    ssr: {
+      // Use Nuxt's built-in payload system for perfect isolation
+      payloadStorage() {
+        return ssrConvexState;
+      },
+    },
   });
-
-  if (import.meta.server) {
-    const payloadData = getSerializedPayload();
-
-    if (payloadData && payloadData !== "{}") {
-      // Use Nuxt's head management to inject the script
-      useHead({
-        script: [
-          {
-            innerHTML: `window.__CONVEX_PAYLOAD__=${JSON.stringify(
-              payloadData
-            )};`,
-            type: "text/javascript",
-            // Ensure it runs before Vue hydration
-            tagPosition: "bodyClose",
-            tagPriority: "high",
-          },
-        ],
-      });
-    }
-  }
 
   nuxtApp.vueApp.use(convex);
 });
