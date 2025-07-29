@@ -28,7 +28,7 @@ export function useConvexMutation<Mutation extends MutationReference>(
     mutate: async (args: FunctionArgs<Mutation>) => {
       try {
         isLoading.value = true;
-        const result = await convex.mutation(mutation, args, optimisticUpdate);
+        const result = await convex.mutation(mutation, args, optimisticUpdate ? { optimisticUpdate } : undefined);
         onSuccess?.(result);
         return result;
       } catch (err) {
